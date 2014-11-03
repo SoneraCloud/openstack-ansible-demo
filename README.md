@@ -4,7 +4,7 @@ pouta-ansible-demo
 Simple Ansible demo to deploy a machine to Pouta
 
 To use this demo you will need:
- - Ansible:
+ - Ansible 1.8:
    http://docs.ansible.com/intro_installation.html
  - OpenStack command line tools:
    http://docs.openstack.org/user-guide/content/install_clients.html
@@ -15,5 +15,7 @@ To use this demo you will need:
 
 To launch the demo:
 
-1. `ansible-playbook create-instance.yml`
-2. `ansible-playbook -i demo.hosts setup-instance.yml`
+`
+ansible-playbook create-instance.yml
+ansible-playbook -i demo.hosts setup-instance.yml
+`
