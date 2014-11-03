@@ -1,16 +1,31 @@
 ---
 - name: Configure demo instance to be a webserver
-  hosts: 86.50.168.144
+  hosts: demo
   remote_user: cloud-user
   sudo: yes
 
+  vars:
+    demo_photo: kajaani.jpg
+    demo_greeting: "Hello from Kajaani!"
+
   tasks:
-   - name: Install and/or update to latest apache
-     yum: name=httpd state=latest
+   - name: Install a webserver
+     yum: name=httpd state=present
 
    - name: Deploy demo web page
-     template: src=resources/demo.html dest=/var/www/html/index.html owner=apache group=apache mode=0644
+     template: src=templates/demo.html.j2 dest=/var/www/html/index.html owner=apache group=apache mode=0644
+
+   - name: Copy a picture of Kajaani
+     copy: src=resources/kajaani.jpg dest=/var/www/html/kajaani.jpg owner=apache group=apache mode=0644
+
+   - name: Configure firewall
+     template: src=templates/iptables.j2 dest=/etc/sysconfig/iptables owner=root group=root mode=0600
+     notify:
+       - reload iptables
 
    - name: Start apache
      service: name=httpd state=started enabled=yes
 
+  handlers:
+    - name: reload iptables
+      service: name=iptables state=reloaded

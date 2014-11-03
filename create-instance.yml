@@ -7,6 +7,8 @@
 - name: Pouta ansible demo
   # The OpenStack modules only work with your local machine.
   hosts: localhost
+  # And it doesn't use local facts
+  gather_facts: false
 
   vars:
     pouta_username: "{{ lookup('env','OS_USERNAME') }}"
