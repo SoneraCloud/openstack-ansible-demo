@@ -1,0 +1,16 @@
+---
+- name: Configure demo instance to be a webserver
+  hosts: 86.50.168.144
+  remote_user: cloud-user
+  sudo: yes
+
+  tasks:
+   - name: Install and/or update to latest apache
+     yum: name=httpd state=latest
+
+   - name: Deploy demo web page
+     template: src=resources/demo.html dest=/var/www/html/index.html owner=apache group=apache mode=0644
+
+   - name: Start apache
+     service: name=httpd state=started enabled=yes
+
