@@ -15,5 +15,5 @@ To use this demo you will need:
 
 To launch the demo:
 
-# ansible-playbook create-instance.yml
-# ansible-playbook -i demo.hosts setup-instance.yml
+1. `ansible-playbook create-instance.yml`
+2. `ansible-playbook -i demo.hosts setup-instance.yml`
