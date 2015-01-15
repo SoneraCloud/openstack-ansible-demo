@@ -17,7 +17,7 @@
     auth_url: "{{ lookup('env','OS_AUTH_URL') }}"
 
     pouta_tiny: 1a0f1143-47b5-4e8a-abda-eba52ae3c5b9
-    pouta_centos65: 62f023f2-0983-41ba-8dc4-59b9d5cd32d1
+    pouta_centos65: cc001620e8b5ac640fed8f737eaaeefc78a6dd89
 
     # These will need changing.
     demo_key: demo
