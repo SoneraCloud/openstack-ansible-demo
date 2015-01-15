@@ -13,6 +13,10 @@ To use this demo you will need:
  - Your Pouta openstack RC file:
    https://research.csc.fi/pouta-install-client
 
+Configuration:
+
+You will need to get some information from your pouta account in order to run this demo. See the comments in demo.hosts and create-instance.yml.
+
 To launch the demo:
 
     ansible-playbook -i demo.hosts -c local create-instance.yml
