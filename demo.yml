@@ -48,7 +48,7 @@
       known_hosts: name={{ floating_ip }} state=absent
       when: result | changed
     - name: Wait for instance to be ready
-      wait_for: host={{ floating_ip }} port=22
+      wait_for: host={{ floating_ip }} port=22 search_regex=OpenSSH delay=10
 
 - name: Configure demo host
   hosts: new
@@ -72,10 +72,22 @@
      yum: name=firewalld state=present
 
    - name: Start firewalld
-     service: name=firewalld state=started enabled=yes
+     service: name=firewalld state=started enabled=yes sleep=5
 
-   - name: Configure firewalld
+   - name: Configure firewalld for ssh
+     firewalld: service=ssh permanent=true state=enabled
+     notify:
+       - restart firewalld
+
+   - name: Configure firewalld for http
      firewalld: service=http permanent=true state=enabled
+     notify:
+       - restart firewalld
 
    - name: Start apache
      service: name=httpd state=started enabled=yes
+
+  handlers:
+    - name: restart firewalld
+      service: name=firewalld state=restarted sleep=5
+     
