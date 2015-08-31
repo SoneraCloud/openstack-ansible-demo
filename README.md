@@ -19,4 +19,4 @@ You will need to get some information from your pouta account in order to run th
 
 To launch the demo:
 
-    ansible-playbook -i demo.hosts create-instance.yml
+    ansible-playbook -i empty.hosts create-instance.yml

@@ -22,7 +22,6 @@
     # These will need changing.
     demo_key: jenkins
     demo_security_groups: default,CSCNets-core
-    demo_floating_ip: 86.50.169.188
     demo_network: 16ed69b0-9886-473c-a1c0-a25d80b82d5a
 
   tasks:
@@ -42,19 +41,37 @@
         security_groups: "{{ demo_security_groups }}"
         nics:
           - net-id: "{{ demo_network }}"
-#        floating_ips:
-#          - "{{ demo_floating_ip }}"
-
-    #- name: Print results
-    #  debug: var=result
-    - name: print floating ip
-      debug: var=result.server.networks.core[1]
+    - name: Wait for instance to be ready
+      wait_for: host={{ result.server.networks.values()[0][1] }} port=22
     - name: Add new host to inventory
-      add_host: name={{ result.server.networks.core[1] }} groups=new
+      add_host: name={{ result.server.networks.values()[0][1] }} groups=new
 - name: Configure demo host
   hosts: new
   remote_user: cloud-user
   sudo: yes
+
+  vars:
+    demo_photo: kajaani.jpg
+    demo_greeting: "Hello from Kajaani!"
+
   tasks:
    - name: Install a webserver
      yum: name=httpd state=present
+
+   - name: Deploy demo web page
+     template: src=templates/demo.html.j2 dest=/var/www/html/index.html owner=apache group=apache mode=0644
+
+   - name: Copy a picture of Kajaani
+     copy: src=resources/kajaani.jpg dest=/var/www/html/kajaani.jpg owner=apache group=apache mode=0644
+
+   - name: Configure firewall
+     template: src=templates/iptables.j2 dest=/etc/sysconfig/iptables owner=root group=root mode=0600
+     notify:
+       - reload iptables
+
+   - name: Start apache
+     service: name=httpd state=started enabled=yes
+
+  handlers:
+    - name: reload iptables
+      service: name=iptables state=reloaded
