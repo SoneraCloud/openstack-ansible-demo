@@ -27,6 +27,7 @@
 
   tasks:
     - name: Create a virtual machine
+      register: result
       os_server:
         state: present
         name: pouta-demo
@@ -41,6 +42,19 @@
         security_groups: "{{ demo_security_groups }}"
         nics:
           - net-id: "{{ demo_network }}"
-        floating_ips:
-          - "{{ demo_floating_ip }}"
+#        floating_ips:
+#          - "{{ demo_floating_ip }}"
 
+    #- name: Print results
+    #  debug: var=result
+    - name: print floating ip
+      debug: var=result.server.networks.core[1]
+    - name: Add new host to inventory
+      add_host: name={{ result.server.networks.core[1] }} groups=new
+- name: Configure demo host
+  hosts: new
+  remote_user: cloud-user
+  sudo: yes
+  tasks:
+   - name: Install a webserver
+     yum: name=httpd state=present
