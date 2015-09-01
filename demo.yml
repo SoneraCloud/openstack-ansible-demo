@@ -72,7 +72,7 @@
      yum: name=firewalld state=present
 
    - name: Start firewalld
-     service: name=firewalld state=started enabled=yes sleep=5
+     service: name=firewalld state=started enabled=yes sleep=10
 
    - name: Configure firewalld for ssh
      firewalld: service=ssh permanent=true state=enabled

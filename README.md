@@ -13,6 +13,8 @@ To use this demo you will need:
    https://research.csc.fi/pouta-access
  - Your Pouta openstack RC file:
    https://research.csc.fi/pouta-install-client
+ - Shade: pip install shade
+   http://docs.openstack.org/infra/shade/
 
 Configuration:
 
