@@ -6,6 +6,7 @@
 #
 - name: Create virtual machine on cPouta
   hosts: localhost # The OpenStack modules run on your local machine.
+  connection: local
 
   vars:
     # These will need changing based on your project
@@ -40,6 +41,7 @@
         server: "{{ result.server.id }}"
       until: openstack.networks.values()[0] | length > 1
       delay: 10
+      retries: 5
     - name: Store the auto-allocated floating IP address
       set_fact: floating_ip={{ openstack.networks.values()[0][1] }}
     - name: Add new host to inventory
@@ -48,7 +50,7 @@
       known_hosts: name={{ floating_ip }} state=absent
       when: result | changed
     - name: Wait for instance to be ready
-      wait_for: host={{ floating_ip }} port=22 search_regex=OpenSSH delay=10
+      wait_for: host={{ floating_ip }} port=22 search_regex=OpenSSH delay=60
 
 - name: Configure demo host
   hosts: new
@@ -73,6 +75,9 @@
 
    - name: Start firewalld
      service: name=firewalld state=started enabled=yes sleep=10
+
+   - name: Wait for firewalld
+     pause: seconds=30
 
    - name: Configure firewalld for ssh
      firewalld: service=ssh permanent=true state=enabled
