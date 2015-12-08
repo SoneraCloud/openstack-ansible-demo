@@ -9,12 +9,14 @@ To use this demo you will need:
    (clone the git repo and use the devel branch)
  - OpenStack command line tools:
    http://docs.openstack.org/user-guide/content/install_clients.html
+ - Shade: pip install shade
+   http://docs.openstack.org/infra/shade/
  - Access to pouta:
    https://research.csc.fi/pouta-access
  - Your Pouta openstack RC file:
    https://research.csc.fi/pouta-install-client
- - Shade: pip install shade
-   http://docs.openstack.org/infra/shade/
+ - Your SSH public key uploaded to Pouta
+   https://pouta.csc.fi/dashboard/project/access_and_security/
 
 Configuration:
 
