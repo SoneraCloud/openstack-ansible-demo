@@ -11,20 +11,28 @@
   vars:
     # These will need changing based on your project
     demo_key: jenkins
-    demo_security_groups: default,CSCNets-core,demo-sg
-    demo_network: core
+    demo_sg: demo-sg-jenkins
+    demo_security_groups: default,{{ demo_sg }} # don't add spaces here!
 
   tasks:
     - name: Create security group
-      os_security_group: name=demo-sg
+      os_security_group: name={{ demo_sg }}
 
-    - name: Add rule to security group
+    - name: Add rule to security group to allow http from the internet
       os_security_group_rule:
-        security_group: demo-sg
+        security_group: demo-sg-jenkins
         protocol: tcp
         port_range_min: 80
         port_range_max: 80
         remote_ip_prefix: 0.0.0.0/0
+
+    - name: Add rule to security group to all ssh from current system
+      os_security_group_rule:
+        security_group: demo-sg-jenkins
+        protocol: tcp
+        port_range_min: 22
+        port_range_max: 22
+        remote_ip_prefix: "{{ ansible_default_ipv4.address }}/32"
 
     - name: Create a virtual machine
       register: result
@@ -34,8 +42,7 @@
         flavor: tiny
         key_name: "{{ demo_key }}"
         security_groups: "{{ demo_security_groups }}"
-        nics:
-          - net-name: "{{ demo_network }}"
+
     - name: Find the auto-allocated floating IP address
       os_server_facts:
         server: "{{ result.server.id }}"
@@ -55,7 +62,7 @@
 - name: Configure demo host
   hosts: new
   remote_user: cloud-user
-  sudo: yes
+  become: yes  # sudo to root
   vars:
     demo_photo: kajaani.jpg
     demo_greeting: "Hello from Kajaani!"
