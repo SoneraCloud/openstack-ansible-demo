@@ -43,14 +43,20 @@
         key_name: "{{ demo_key }}"
         security_groups: "{{ demo_security_groups }}"
 
-    - name: Find the auto-allocated floating IP address
-      os_server_facts:
-        server: "{{ result.server.id }}"
-      until: openstack.networks.values()[0] | length > 1
-      delay: 10
-      retries: 5
+    - name: Create a virtual machine
+      register: result
+      os_server:
+        name: pouta-demo
+        image: CentOS-7.0
+        flavor: tiny
+        key_name: "{{ demo_key }}"
+        security_groups: "{{ demo_security_groups }}"
+      until: (result.openstack is defined) and (result.openstack.networks.values()[0] | length > 1)
+      delay: 20
+      retries: 50 
+
     - name: Store the auto-allocated floating IP address
-      set_fact: floating_ip={{ openstack.networks.values()[0][1] }}
+      set_fact: floating_ip={{ result.openstack.networks.values()[0][1] }}
     - name: Add new host to inventory
       add_host: name={{ floating_ip }} groups=new
     - name: clear ssh known_hosts
