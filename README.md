@@ -6,7 +6,6 @@ Simple Ansible demo to deploy a machine to Pouta
 To use this demo you will need:
  - Ansible 2.0:
   http://docs.ansible.com/intro_installation.html
-   (clone the git repo and use the devel branch)
  - OpenStack command line tools:
    http://docs.openstack.org/user-guide/content/install_clients.html
  - Shade: pip install shade
