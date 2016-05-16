@@ -1,22 +1,27 @@
 ---
-# Basic demo of using Ansible to create a virtual machine on Pouta.csc.fi
+# Basic demo of using Ansible to create a virtual machine on OpenStack clouds.
 #
 # You'll need to download and source your credentials before this will work:
-#  https://research.csc.fi/pouta-credentials
 #
-- name: Create virtual machine on cPouta
+- name: Create virtual machine on and OpenStack cloud
   hosts: localhost # The OpenStack modules run on your local machine.
   connection: local
 
   vars:
-    # These will need changing based on your project
-    demo_key: jenkins
-    demo_sg: demo-sg-jenkins
+    # These need changing
+    your_name: "jenkins"
+    demo_image: centos-7
+    demo_flavor: sonera.linux.tiny
+    # You can leave these
+    demo_key: "{{your_name}}"
+    demo_sg: demo-sg-{{your_name}}"
     demo_security_groups: default,{{ demo_sg }} # don't add spaces here!
 
   tasks:
     - name: Create security group
-      os_security_group: name={{ demo_sg }}
+      os_security_group:
+        name={{ demo_sg }}
+        validate_certs=false
 
     - name: Add rule to security group to allow http from the internet
       os_security_group_rule:
@@ -25,6 +30,7 @@
         port_range_min: 80
         port_range_max: 80
         remote_ip_prefix: 0.0.0.0/0
+        validate_certs: false
 
     - name: Add rule to security group to all ssh from current system
       os_security_group_rule:
@@ -33,24 +39,27 @@
         port_range_min: 22
         port_range_max: 22
         remote_ip_prefix: "{{ ansible_default_ipv4.address }}/32"
+        validate_certs: false
 
     - name: Create a virtual machine
       register: result
       os_server:
-        name: pouta-demo
-        image: CentOS-7.0
-        flavor: tiny
+        name: ansible-demo-{{ your_name }}
+        image: "{{ demo_image }}"
+        flavor: "{{ demo_flavor }}"
         key_name: "{{ demo_key }}"
         security_groups: "{{ demo_security_groups }}"
+        validate_certs: false
 
     - name: Create a virtual machine
       register: result
       os_server:
-        name: pouta-demo
-        image: CentOS-7.0
-        flavor: tiny
+        name: ansible-demo-{{ your_name }}
+        image: "{{ demo_image }}"
+        flavor: "{{ demo_flavor }}"
         key_name: "{{ demo_key }}"
         security_groups: "{{ demo_security_groups }}"
+        validate_certs: false
       until: (result.openstack is defined) and (result.openstack.networks.values()[0] | length > 1)
       delay: 20
       retries: 50 
