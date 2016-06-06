@@ -14,7 +14,7 @@
     demo_flavor: sonera.linux.tiny
     # You can leave these
     demo_key: "{{your_name}}"
-    demo_sg: demo-sg-{{your_name}}"
+    demo_sg: demo-sg-{{your_name}}
     demo_security_groups: default,{{ demo_sg }} # don't add spaces here!
 
   tasks:
@@ -32,7 +32,7 @@
         remote_ip_prefix: 0.0.0.0/0
         validate_certs: false
 
-    - name: Add rule to security group to all ssh from current system
+    - name: Add rule to security group to ssh from current system
       os_security_group_rule:
         security_group: "{{ demo_sg }}"
         protocol: tcp
@@ -49,7 +49,14 @@
         flavor: "{{ demo_flavor }}"
         key_name: "{{ demo_key }}"
         security_groups: "{{ demo_security_groups }}"
+        auto_ip: yes
         validate_certs: false
+
+      #- os_server_facts:
+      #  server: ansible-demo-{{ your_name }}
+      #  validate_certs: false
+      # - debug:
+      #  var: openstack_servers
 
     - name: Create a virtual machine
       register: result
@@ -72,25 +79,24 @@
       known_hosts: name={{ floating_ip }} state=absent
       when: result | changed
     - name: Wait for instance to be ready
-      wait_for: host={{ floating_ip }} port=22 search_regex=OpenSSH delay=60
+      wait_for: host={{ floating_ip }} port=22 search_regex=OpenSSH delay=5
 
 - name: Configure demo host
   hosts: new
-  remote_user: cloud-user
+  remote_user: centos
   become: yes  # sudo to root
   vars:
-    demo_photo: kajaani.jpg
-    demo_greeting: "Hello from Kajaani!"
+    demo_greeting: "Hello from OpenStack!"
 
   tasks:
+   - name: Configure DNS
+     template: src=templates/resolv.conf.j2 dest=/etc/resolv.conf owner=root group=root mode=0644
+
    - name: Install a webserver
      yum: name=httpd state=present
 
    - name: Deploy demo web page
      template: src=templates/demo.html.j2 dest=/var/www/html/index.html owner=apache group=apache mode=0644
-
-   - name: Copy a picture of Kajaani
-     copy: src=resources/kajaani.jpg dest=/var/www/html/kajaani.jpg owner=apache group=apache mode=0644
 
    - name: Install firewalld
      yum: name=firewalld state=present
