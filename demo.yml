@@ -21,7 +21,7 @@
     - name: Create security group
       os_security_group:
         name={{ demo_sg }}
-        validate_certs=false
+        validate_certs=false # Sorry! HACK!!
 
     - name: Add rule to security group to allow http from the internet
       os_security_group_rule:
