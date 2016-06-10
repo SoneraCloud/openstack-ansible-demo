@@ -21,7 +21,6 @@
     - name: Create security group
       os_security_group:
         name={{ demo_sg }}
-        validate_certs=false # Sorry! HACK!!
 
     - name: Add rule to security group to allow http from the internet
       os_security_group_rule:
@@ -30,7 +29,6 @@
         port_range_min: 80
         port_range_max: 80
         remote_ip_prefix: 0.0.0.0/0
-        validate_certs: false
 
     - name: Add rule to security group to ssh from current system
       os_security_group_rule:
@@ -39,7 +37,6 @@
         port_range_min: 22
         port_range_max: 22
         remote_ip_prefix: "{{ ansible_default_ipv4.address }}/32"
-        validate_certs: false
 
     - name: Create a virtual machine
       register: result
@@ -50,11 +47,9 @@
         key_name: "{{ demo_key }}"
         security_groups: "{{ demo_security_groups }}"
         auto_ip: yes
-        validate_certs: false
 
       #- os_server_facts:
       #  server: ansible-demo-{{ your_name }}
-      #  validate_certs: false
       # - debug:
       #  var: openstack_servers
 
@@ -66,7 +61,6 @@
         flavor: "{{ demo_flavor }}"
         key_name: "{{ demo_key }}"
         security_groups: "{{ demo_security_groups }}"
-        validate_certs: false
       until: (result.openstack is defined) and (result.openstack.networks.values()[0] | length > 1)
       delay: 20
       retries: 50 
