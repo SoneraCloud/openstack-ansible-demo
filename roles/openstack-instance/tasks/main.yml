@@ -1,0 +1,90 @@
+---
+- name: Gather facts from localhost for the initial part of the playbook
+  setup:
+  delegate_to: localhost
+
+- name: Create security group
+  os_security_group:
+    name: "{{ demo_sg }}"
+  delegate_to: localhost
+
+- name: Add rule to security group to allow http from the internet
+  os_security_group_rule:
+    security_group: "{{ demo_sg }}"
+    protocol: tcp
+    port_range_min: 80
+    port_range_max: 80
+    remote_ip_prefix: 0.0.0.0/0
+  delegate_to: localhost
+
+- name: Add rule to security group to ssh from current system
+  os_security_group_rule:
+    security_group: "{{ demo_sg }}"
+    protocol: tcp
+    port_range_min: 22
+    port_range_max: 22
+    remote_ip_prefix: "{{ ansible_default_ipv4.address }}/32"
+  delegate_to: localhost
+
+- name: Create a virtual machine
+  register: result
+  os_server:
+    name: "{{ demo_hostname }}"
+    image: "{{ demo_image }}"
+    flavor: "{{ demo_flavor }}"
+    key_name: "{{ demo_key }}"
+    security_groups: "{{ demo_security_groups }}"
+    auto_ip: yes
+    nics:
+      - net-name: "{{ demo_net_name }}"
+  delegate_to: localhost
+  tags: server
+
+# Floating IP allocation is reliable, but the allocated IP is ofen missing from
+# the results. Find it using the CLI tools
+- name: Find the floating IP address (work around nova issue)
+  command: openstack ip floating list -f value -c "Fixed IP Address" -c "Floating IP Address"
+  register: floatingiplines
+  changed_when: false
+  delegate_to: localhost
+  tags: server
+
+- name: Set inventory_hostname to the new floating IP address
+  set_fact: ansible_host={{ item | regex_replace('(.*) (.*)', '\\1') }}
+  with_items: '{{ floatingiplines.stdout_lines }}'
+  when: "item | search('{{ result.openstack.networks.values()[0][0] }}')"
+  delegate_to: localhost
+  tags: server
+
+# This is the simpler way to get the floating IP, but it isn't reliable
+#    - name: Set inventory_hostname to the new floating IP address
+#      set_fact: ansible_host="{{ result.openstack.networks.values()[0][1] }}"
+
+- name: clear ssh known_hosts
+  known_hosts: name={{ ansible_host }} state=absent
+  when: result | changed
+  ignore_errors: true # This non-essential task tends to fail
+  delegate_to: localhost
+
+- name: Wait for instance to be ready
+  wait_for: host={{ ansible_host }} port=22 search_regex=OpenSSH delay=10
+  delegate_to: localhost
+
+# Now the Virtual machine is up we re-run setup so after this role is complete
+# other tasks can use the host as normal
+
+- name: Install missing Python2 for Ansible support
+  raw: sudo bash -c "test -e /usr/bin/python || (apt -qqy update && apt install -qy python-minimal)"
+  tags: server
+
+- name: Fix sudo
+  lineinfile:
+    dest: /etc/hosts
+    line: "{{ ansible_default_ipv4.address }} {{ inventory_hostname }}"
+  tags: server
+  become: yes
+
+- name: Re-run setup against the new vm
+  setup:
+  tags: server
+...

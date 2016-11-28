@@ -1,0 +1,42 @@
+---
+- name: Run setup
+  setup:
+
+- name: Install required packages
+  package:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - nginx-full
+    - wordpress
+    - mysql-client
+    - mysql-server
+    - python-mysqldb
+    - php-fpm
+    - php-mysql
+  become: yes
+
+- name: Start and enable services
+  service:
+    name: "{{ item }}"
+    enabled: yes
+    state: started
+  with_items:
+    - nginx
+    - mysql
+  become: yes
+
+- name: Create database for mysql
+  mysql_db:
+    name: wordpress
+    state: present
+  become: yes
+
+- name: Create mysql user for wordpress
+  mysql_user:
+    name: wordpress
+    host: localhost
+    priv: wordpress.*:ALL
+  become: yes
+
+...

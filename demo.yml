@@ -1,33 +1,26 @@
 ---
-# Demo using Ansible to create and configure a virtual machine on OpenStack clouds.
+# Basic demo of using Ansible to create a virtual machine on OpenStack clouds.
 #
-# You'll need to download and source your credentials before this will work
-- name: Create and configure demo VM
-  hosts: ansible-demo # Hostname that ansible connects to
-  remote_user: centos # Linux user in the CentOS images
-  gather_facts: false # Disable running setup module which will fail before VM exists
+# You'll need to download and source your credentials before this will work:
+#
+- name: Create virtual machine on and OpenStack cloud
+  hosts: localhost # The OpenStack modules run on your local machine.
+  connection: local
 
   vars:
-    # These will vary from cloud to cloud
+    # These need changing
+    your_name: "jenkins"
     demo_image: centos-7
     demo_flavor: sonera.linux.tiny
-    # These don't need changing
-    your_name: "{{ lookup('env', 'USERNAME') }}"
+    # You can leave these
     demo_key: "{{your_name}}"
     demo_sg: demo-sg-{{your_name}}
     demo_security_groups: default,{{ demo_sg }} # don't add spaces here!
-    demo_net_name: "{{ lookup('env', 'OS_PROJECT_NAME') }}-net"
-    demo_greeting: "Hello from OpenStack!"
 
   tasks:
-    - name: Gather facts from localhost for the initial part of the playbook
-      setup:
-      delegate_to: localhost
-
     - name: Create security group
       os_security_group:
-        name: "{{ demo_sg }}"
-      delegate_to: localhost
+        name={{ demo_sg }}
 
     - name: Add rule to security group to allow http from the internet
       os_security_group_rule:
@@ -36,7 +29,6 @@
         port_range_min: 80
         port_range_max: 80
         remote_ip_prefix: 0.0.0.0/0
-      delegate_to: localhost
 
     - name: Add rule to security group to ssh from current system
       os_security_group_rule:
@@ -45,7 +37,6 @@
         port_range_min: 22
         port_range_max: 22
         remote_ip_prefix: "{{ ansible_default_ipv4.address }}/32"
-      delegate_to: localhost
 
     - name: Create a virtual machine
       register: result
@@ -55,81 +46,79 @@
         flavor: "{{ demo_flavor }}"
         key_name: "{{ demo_key }}"
         security_groups: "{{ demo_security_groups }}"
-        auto_ip: yes
-        nics:
-          - net-name: "{{ demo_net_name }}"
-      delegate_to: localhost
+        auto_ip: no
 
-# Floating IP allocation is reliable, but the allocated IP is ofen missing from
-# the results. Find it using the CLI tools
+    - name: Assign floating IP
+      os_floating_ip:
+        server: "{{ result.openstack.id }}"
+      ignore_errors: yes
+
     - name: Find the floating IP address (work around nova issue)
-      command: openstack ip floating list -f value -c "Fixed IP Address" -c "Floating IP Address"
+      shell: openstack ip floating list -f value -c "Fixed IP Address" -c "Floating IP Address"
       register: floatingiplines
-      changed_when: false
-      delegate_to: localhost
 
-    - name: Set inventory_hostname to the new floating IP address
-      set_fact: ansible_host={{ item | regex_replace('(.*) (.*)', '\\1') }}
+    - name: Store the auto-allocated floating IP address
+      set_fact: floating_ip={{ item | regex_replace('(.*) (.*)', '\\1') }}
       with_items: '{{ floatingiplines.stdout_lines }}'
-      when: "item | search('{{ result.openstack.networks.values()[0][0] }}')"
-      delegate_to: localhost
+      when: item | search('{{ result.openstack.networks.values()[0][0] }}')
 
-# This is the simpler way to get the floating IP, but it isn't reliable
-#    - name: Set inventory_hostname to the new floating IP address
-#      set_fact: ansible_host="{{ result.openstack.networks.values()[0][1] }}"
+  #    - name: Assign a floating IP and wait till it is done
+  #    register: result
+  #    os_server:
+  #      name: ansible-demo-{{ your_name }}
+  #      image: "{{ demo_image }}"
+  #      flavor: "{{ demo_flavor }}"
+  #      key_name: "{{ demo_key }}"
+  #      security_groups: "{{ demo_security_groups }}"
+  #      #auto_ip: no
+  #     until: (result.openstack is defined) and (result.openstack.networks.values()[0] | length > 1)
+  #    delay: 20
+  #   retries: 50 
 
+    - name: Add new host to inventory
+      add_host: name={{ floating_ip }} groups=new
     - name: clear ssh known_hosts
-      known_hosts: name={{ ansible_host }} state=absent
+      known_hosts: name={{ floating_ip }} state=absent
       when: result | changed
-      ignore_errors: true # This non-essential task tends to fail
-      delegate_to: localhost
-
     - name: Wait for instance to be ready
-      wait_for: host={{ ansible_host }} port=22 search_regex=OpenSSH delay=10
-      delegate_to: localhost
+      wait_for: host={{ floating_ip }} port=22 search_regex=OpenSSH delay=10
 
-# Now the Virtual machine is working we configure a simple webserver
+- name: Configure demo host
+  hosts: new
+  remote_user: centos
+  become: yes  # sudo to root
+  vars:
+    demo_greeting: "Hello from OpenStack!"
 
-    - name: Re-run setup against the new vm
-      setup:
+  tasks:
+   - name: Configure DNS
+     template: src=templates/resolv.conf.j2 dest=/etc/resolv.conf owner=root group=root mode=0644
 
-    - name: Install a webserver
-      yum: name=httpd state=present
-      become: yes  # sudo to root
+   - name: Install a webserver
+     yum: name=httpd state=present
 
-    - name: Deploy demo web page
-      template: src=templates/demo.html.j2 dest=/var/www/html/index.html owner=apache group=apache mode=0644
-      become: yes  # sudo to root
+   - name: Deploy demo web page
+     template: src=templates/demo.html.j2 dest=/var/www/html/index.html owner=apache group=apache mode=0644
 
-    - name: Install firewalld
-      yum: name=firewalld state=present
-      become: yes  # sudo to root
+   - name: Install firewalld
+     yum: name=firewalld state=present
+       
+   - name: Start firewalld
+     service: name=firewalld state=started enabled=yes
 
-    - name: Start firewalld
-      service: name=firewalld state=started enabled=yes
-      become: yes  # sudo to root
+   - name: Configure firewalld for ssh
+     firewalld: service=ssh permanent=true state=enabled
+     notify:
+     - restart firewalld
 
-    - name: Configure firewalld for ssh
-      firewalld: service=ssh permanent=true state=enabled
-      become: yes  # sudo to root
-      notify:
-        - restart firewalld
+   - name: Configure firewalld for http
+     firewalld: service=http permanent=true state=enabled
+     notify:
+     - restart firewalld
 
-    - name: Configure firewalld for http
-      firewalld: service=http permanent=true state=enabled
-      become: yes  # sudo to root
-      notify:
-        - restart firewalld
-
-    - name: Start apache
-      service: name=httpd state=started enabled=yes
-      become: yes  # sudo to root
-
-    - name: The webserver is configured
-      debug:
-        msg: "http://{{ ansible_host }}/"
+   - name: Start apache
+     service: name=httpd state=started enabled=yes
 
   handlers:
     - name: restart firewalld
-      become: yes  # sudo to root
       service: name=firewalld state=restarted
