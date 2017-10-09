@@ -1,0 +1,16 @@
+---
+# Newer distros don't include Python2 and Ansible currently doesn't work out the box
+# This workaround should be removed once Ansible checks for Python3 by default
+- name: Check if python2 is available
+  raw: python2 --version
+  args:
+    executable: /bin/bash
+  register: python_exist
+  failed_when: false
+  changed_when: false
+
+- name: Use python3 as the ansible interpreter if python2 is unavailable
+  set_fact:
+    ansible_python_interpreter: /usr/bin/python3
+  when: "'not installed' in python_exist.stdout or 'not found' in python_exist.stdout"
+...
