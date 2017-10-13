@@ -5,6 +5,7 @@ Simple Ansible demo to deploy an instance and simple webserver to an OpenStack c
 
 Configuration:
 
+Create a (Python virtenv)[http://docs.python-guide.org/en/latest/dev/virtualenvs/#lower-level-virtualenv] and install the dependancies.
 
 ```
 mkvirtualenv example
