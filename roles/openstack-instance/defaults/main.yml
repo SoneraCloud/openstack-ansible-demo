@@ -1,8 +1,7 @@
 ---
-# These will vary from cloud to cloud and probably need overriding in
-# group_vars
-demo_image: centos-7
-demo_flavor: sonera.linux.tiny
+# These will vary from cloud to cloud and need overriding
+demo_image: default_image
+demo_flavor: default_flavor
 
 # These don't need changing
 your_name: "{{ lookup('env', 'USERNAME') }}"
@@ -10,6 +9,14 @@ demo_hostname: "ansible-demo-{{ your_name }}"
 demo_key: "{{your_name}}"
 demo_sg: demo-sg-{{your_name}}
 demo_security_groups: default,{{ demo_sg }} # don't add spaces here!
+#demo_availability_zone: example
 demo_net_name: "{{ lookup('env', 'OS_PROJECT_NAME') }}-net"
 demo_greeting: "Hello from OpenStack!"
+# Add a user account to the instance with the same name as your local username
+# This uses cloud-init, not ansible, to make the changes
+demo_userdata: |
+  #cloud-config
+  system_info:
+    default_user:
+      name: {{ your_name }}
 ...

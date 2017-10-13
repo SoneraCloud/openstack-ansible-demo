@@ -1,2 +1,4 @@
 # We ignore Ansible's .retry files because they are silly
 *.retry
+# Ignore vim temp files
+*.swp

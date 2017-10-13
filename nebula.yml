@@ -1,0 +1,7 @@
+---
+# Vars for Nebula Cloud9
+demo_image: "CentOS 7 x86_64"
+demo_flavor: nbl-free-tier
+demo_net_name: Network-Public-Helsinki-1
+demo_availability_zone: helsinki-1
+...
