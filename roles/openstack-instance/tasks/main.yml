@@ -15,13 +15,16 @@
       port_range_max: 80
       remote_ip_prefix: 0.0.0.0/0
 
+  - name: Get current system public IP
+    ipify_facts:
+
   - name: Add rule to security group to ssh from current system
     os_security_group_rule:
       security_group: "{{ demo_sg }}"
       protocol: tcp
       port_range_min: 22
       port_range_max: 22
-      remote_ip_prefix: "{{ ansible_default_ipv4.address }}/32"
+      remote_ip_prefix: "{{ ipify_public_ip }}/32"
 
   - name: Create a virtual machine
     os_server:
@@ -39,7 +42,7 @@
     set_fact:
       ansible_host: "{{ create_instance.server.accessIPv4 }}"
 
-  - name: clear ssh known_hosts
+  - name: Clear ssh known_hosts
     known_hosts:
       name: "{{ ansible_host }}"
       state: absent
@@ -51,6 +54,13 @@
       host: "{{ ansible_host }}"
       port: 22
       search_regex: OpenSSH
+    when: create_instance | changed
+
+    # Without some short pause, the next task that requires an SSH connection to the
+    # remote host will fail.
+  - name: Wait for the ssh connection to settle
+    pause:
+      seconds: 10
     when: create_instance | changed
 
   delegate_to: localhost
